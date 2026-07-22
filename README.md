@@ -17,9 +17,9 @@ A SQL-based analysis of the Melbourne (Australia) real estate market, based on 3
 | Rooms, Bedroom, Bathroom, Car | Room/facility counts | Contains NULLs (~24% for Bathroom) |
 | Type | h = house, u = unit/apartment, t = townhouse | — |
 | Method | Sale method (S, SP, PI, VB, SN, PN, SA, W, SS) | — |
-| Date | Sale date | Text format `D/M/YYYY`, **variable-length day/month** (e.g. `3/9/2016`, not `03/09/2016`) |
+| Date | Sale date | Text format D/M/YYYY, variable-length day/month (e.g. 3/9/2016, not 03/09/2016) |
 | Distance | Distance to CBD (km) | — |
-| Landsize, BuildingArea | Land/building area | BuildingArea contains the literal string `"inf"` mixed into a numeric column; ~61% NULL |
+| Landsize, BuildingArea | Land/building area | BuildingArea contains the literal string "inf" mixed into a numeric column; ~61% NULL |
 | YearBuilt | Year built | ~55% NULL |
 | CouncilArea, Regionname | Administrative area | — |
 | Price | Sale price (AUD) | NULL for unsold/undisclosed properties (~22%) |
@@ -33,14 +33,14 @@ A SQL-based analysis of the Melbourne (Australia) real estate market, based on 3
 
 ### Option 1 — Use the pre-built database (fastest)
 1. Open **DB Browser for SQLite**.
-2. `Open Database` → select `melbourne_housing.db`.
-3. Go to the **Execute SQL** tab, copy/open queries from `melbourne_housing_analysis.sql` (skip the SETUP section since the `housing` table already exists) → run directly.
+2. Open Database → select melbourne_housing.db.
+3. Go to the **Execute SQL** tab, copy/open queries from melbourne_housing_analysis.sql (skip the SETUP section since the housing table already exists) → run directly.
 
 ### Option 2 — Rebuild from scratch (if you want to do the cleaning yourself)
 1. Create a new database in DB Browser, name it whatever you like.
-2. Import `Melbourne_housing.csv` as a table named `housing_raw` (File → Import → Table from CSV).
-   ⚠️ **Important:** when importing, make sure the option to treat empty cells as NULL is checked, so they don't get auto-filled with `0`.
-3. Copy the full contents of `melbourne_housing_analysis.sql`, run **SECTION 0 — SETUP** first to create the cleaned `housing` table.
+2. Import Melbourne_housing.csv as a raw database (File → Import → Table from CSV).
+    **Important:** when importing, make sure the option to treat empty cells as NULL is checked, so they don't get auto-filled with 0.
+3. Copy the full contents of melbourne_housing_analysis.sql, run **SECTION 0 — SETUP** first to create the cleaned housing table.
 4. Then run the analytical queries in SECTIONS 1–10 as needed.
 
 ---
@@ -49,38 +49,38 @@ A SQL-based analysis of the Melbourne (Australia) real estate market, based on 3
 
 | Issue | How it's handled |
 |---|---|
-| `BuildingArea` contains the string `"inf"` | `CASE WHEN BuildingArea = 'inf' THEN NULL ELSE CAST(BuildingArea AS REAL) END` |
-| `Price` stored as TEXT (causes incorrect MIN/MAX comparisons) | `CAST(Price AS REAL) AS Price` directly in the SELECT that creates the table |
-| `Date` is text `D/M/YYYY` with variable-length day/month | Parsed using `instr()`/`substr()` split on `/` positions, not fixed offsets |
-| Need derived metrics (price per sqm, price per room) | Added via `ALTER TABLE` + `UPDATE` after table creation: `price_per_sqm`, `price_per_room` |
+| BuildingArea contains the string "inf" | CASE WHEN BuildingArea = 'inf' THEN NULL ELSE CAST(BuildingArea AS REAL) END |
+| Price stored as TEXT (causes incorrect MIN/MAX comparisons) | CAST(Price AS REAL) AS Price directly in the SELECT that creates the table |
+| Date is text D/M/YYYY with variable-length day/month | Parsed using instr()/substr() split on / positions, not fixed offsets |
+| Need derived metrics (price per sqm, price per room) | Added via ALTER TABLE + UPDATE after table creation: price_per_sqm, price_per_room |
 | Queries frequently filter by suburb/region/type/year | Created `INDEX`es on these columns for speed |
 
 ### Common Pitfalls and How to Spot Them
 
-1. **`MIN(Price)` comes out larger than `MAX(Price)`**
-   → Cause: the `Price` column has TEXT type, so SQLite compares values as **strings** (`"999999.0" > "1000000.0"` because `'9' > '1'`) instead of comparing them numerically.
+1. **MIN(Price) comes out larger than MAX(Price)**
+   → Cause: the Price column has TEXT type, so SQLite compares values as **strings** (`"999999.0" > "1000000.0"` because `'9' > '1'`) instead of comparing them numerically.
    → Check with: `SELECT typeof(Price) FROM housing LIMIT 5;`
    → Fix: cast with `CAST(Price AS REAL)` at the time the table is created.
 
-2. **`Bathroom = 0` appears even though the raw CSV shows no row explicitly set to 0**
-   → Cause: empty cells in the original CSV got auto-filled with `0` by the **CSV import tool** instead of being kept as NULL — this happens at the import step into `housing_raw`, before the `housing` table is even created.
+2. **Bathroom = 0 appears even though the raw CSV shows no row explicitly set to 0**
+   → Cause: empty cells in the original CSV got auto-filled with `0` by the **CSV import tool** instead of being kept as NULL — this happens at the import step into housing_raw, before the housing table is even created.
    → Check with:
      ```sql
      SELECT COUNT(*) FROM housing_raw WHERE Bathroom = 0;
      SELECT COUNT(*) FROM housing_raw WHERE Bathroom IS NULL;
      ```
-   → Fix: re-import the CSV with the correct option to treat blank cells as NULL. If you're stuck with data that already has this issue, consider filtering `WHERE Bathroom > 0` instead of just `IS NOT NULL` when analyzing this column specifically.
+   → Fix: re-import the CSV with the correct option to treat blank cells as NULL. If you're stuck with data that already has this issue, consider filtering WHERE Bathroom > 0 instead of just IS NOT NULL when analyzing this column specifically.
 
-3. **Don't `DELETE` or impute fake values for NULL rows at the base table level**
+3. **Don't DELETE or impute fake values for NULL rows at the base table level**
    → NULL is genuine information ("unknown/not available"); deleting these rows loses data in all the other columns of that row too, and imputing fake values distorts the analysis.
    → Correct approach: keep NULLs in the base table, and only filter `WHERE column IS NOT NULL` inside each query that specifically needs that column.
 
-4. **`NULL` result when using `LAG()`/`LEAD()` on the first/last row**
-   → This is expected behavior, not a bug: the first row has no "previous row" to compare against (e.g., calculating year-over-year growth for the very first year in the dataset), so `LAG()` returns NULL, and any calculation involving NULL also returns NULL.
+4. **NULL result when using LAG()/LEAD() on the first/last row**
+   → This is expected behavior, not a bug: the first row has no "previous row" to compare against (e.g., calculating year-over-year growth for the very first year in the dataset), so LAG() returns NULL, and any calculation involving NULL also returns NULL.
 
 ---
 
-## 5. Analytical Query Structure (`melbourne_housing_analysis.sql`)
+## 5. Analytical Query Structure (melbourne_housing_analysis.sql)
 
 | Section | Content |
 |---|---|
@@ -113,7 +113,7 @@ A SQL-based analysis of the Melbourne (Australia) real estate market, based on 3
 ## 7. Data Limitations
 
 - ~22% of transactions lack a sale price → average figures may be slightly skewed.
-- >55% missing `YearBuilt`/`BuildingArea` → analyses involving these two fields should be treated as indicative only.
+- >55% missing YearBuilt/BuildingArea → analyses involving these two fields should be treated as indicative only.
 - Data only extends through March 2018 → does not reflect subsequent market movements (COVID-19, recent interest rate changes, etc.).
 - Some numeric fields (Bathroom, Car, etc.) may have `0` values that are actually import errors rather than true NULLs — worth re-checking if this dataset is reused elsewhere.
 

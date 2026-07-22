@@ -50,7 +50,7 @@
 
 ### 2.7 Sale method and clearance rates
 - 56.6% of listings sold outright via a successful auction/private treaty (Method = S); 13.9% were "passed in" (failed to meet reserve).
-- Highest success rate by region: Northern/Western Metropolitan (~75%); lowest: Eastern Metropolitan (66.7%) — higher-priced areas tend to be more selective for buyers, leading to a higher passed-in rate.
+- Highest success rate by region: Northern/Western Victoria (~78%); lowest: Eastern Metropolitan (66.7%) — higher-priced areas tend to be more selective for buyers, leading to a higher passed-in rate.
 
 ### 2.8 Agents & market liquidity
 - Highest-volume agents: Nelson (2,735 sales), Jellis (2,532) — but Jellis' average price (1.35M) is notably higher than Nelson's (1.02M), suggesting Jellis is more concentrated in the premium segment.
@@ -66,7 +66,6 @@
 | $800K–$1.2M | 27.3% |
 | $1.2M–$2M | 22.9% |
 | $2M+ | 7.2% |
-
 → The majority of transactions (59%) fall in the 500K–1.2M range — this is the dominant middle-market segment of the Melbourne housing market.
 
 ---

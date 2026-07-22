@@ -58,12 +58,12 @@ A SQL-based analysis of the Melbourne (Australia) real estate market, based on 3
 ### Common Pitfalls and How to Spot Them
 
 1. **MIN(Price) comes out larger than MAX(Price)**
-   → Cause: the Price column has TEXT type, so SQLite compares values as **strings** (`"999999.0" > "1000000.0"` because `'9' > '1'`) instead of comparing them numerically.
-   → Check with: `SELECT typeof(Price) FROM housing LIMIT 5;`
-   → Fix: cast with `CAST(Price AS REAL)` at the time the table is created.
+   → Cause: the Price column has TEXT type, so SQLite compares values as **strings** ("999999.0" > "1000000.0" because '9' > '1') instead of comparing them numerically.
+   → Check with: SELECT typeof(Price) FROM housing LIMIT 5;
+   → Fix: cast with CAST(Price AS REAL) at the time the table is created.
 
 2. **Bathroom = 0 appears even though the raw CSV shows no row explicitly set to 0**
-   → Cause: empty cells in the original CSV got auto-filled with `0` by the **CSV import tool** instead of being kept as NULL — this happens at the import step into housing_raw, before the housing table is even created.
+   → Cause: empty cells in the original CSV got auto-filled with 0 by the **CSV import tool** instead of being kept as NULL — this happens at the import step into housing_raw, before the housing table is even created.
    → Check with:
      ```sql
      SELECT COUNT(*) FROM housing_raw WHERE Bathroom = 0;
@@ -73,7 +73,7 @@ A SQL-based analysis of the Melbourne (Australia) real estate market, based on 3
 
 3. **Don't DELETE or impute fake values for NULL rows at the base table level**
    → NULL is genuine information ("unknown/not available"); deleting these rows loses data in all the other columns of that row too, and imputing fake values distorts the analysis.
-   → Correct approach: keep NULLs in the base table, and only filter `WHERE column IS NOT NULL` inside each query that specifically needs that column.
+   → Correct approach: keep NULLs in the base table, and only filter WHERE column IS NOT NULL inside each query that specifically needs that column.
 
 4. **NULL result when using LAG()/LEAD() on the first/last row**
    → This is expected behavior, not a bug: the first row has no "previous row" to compare against (e.g., calculating year-over-year growth for the very first year in the dataset), so LAG() returns NULL, and any calculation involving NULL also returns NULL.
@@ -105,21 +105,20 @@ A SQL-based analysis of the Melbourne (Australia) real estate market, based on 3
 - **Southern Metropolitan & Boroondara City Council** are the most expensive areas; **Western Victoria** is the most affordable.
 - The market shows signs of **mild cooling**: average price fell -1.14% (2017) and -3.2% (Q1 2018 vs. 2017).
 - 59% of transactions fall within the 500K–1.2M AUD range — this is the market's dominant price segment.
-
-→ Full details in `Findings_Recommendations.md`.
+→ Full details in Findings_Recommendations.md.
 
 ---
 
 ## 7. Data Limitations
 
 - ~22% of transactions lack a sale price → average figures may be slightly skewed.
-- >55% missing YearBuilt/BuildingArea → analyses involving these two fields should be treated as indicative only.
+- 55% missing YearBuilt/BuildingArea → analyses involving these two fields should be treated as indicative only.
 - Data only extends through March 2018 → does not reflect subsequent market movements (COVID-19, recent interest rate changes, etc.).
-- Some numeric fields (Bathroom, Car, etc.) may have `0` values that are actually import errors rather than true NULLs — worth re-checking if this dataset is reused elsewhere.
+- Some numeric fields (Bathroom, Car, etc.) may have 0 values that are actually import errors rather than true NULLs — worth re-checking if this dataset is reused elsewhere.
 
 ---
 
 ## 8. Tools Used
 
 - **SQLite** (via DB Browser for SQLite).
-- Queries can be ported to PostgreSQL/MySQL with minor adjustments (e.g., date-splitting functions, `CREATE TABLE AS SELECT` syntax; window functions are already compatible with most modern engines).
+- Queries can be ported to PostgreSQL/MySQL with minor adjustments (e.g., date-splitting functions, CREATE TABLE AS SELECT syntax; window functions are already compatible with most modern engines).
